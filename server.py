@@ -1,3 +1,6 @@
+
+
+
 # import socket
 # import threading
 # import os
@@ -32,6 +35,8 @@
 #                         del call_requests[client_socket]
 #                 else:
 #                     client_socket.send("没有通话请求.".encode('utf-8'))
+#             elif msg.startswith('/endcall'):
+#                 handle_end_call(client_socket)
 #             elif msg.startswith('/group'):
 #                 _, group_name = msg.split()
 #                 join_group(client_socket, username, group_name)
@@ -93,6 +98,19 @@
 
 #     broadcast(f"文件 {filename} 已发送给群组或用户", client_socket)
 
+# def handle_end_call(client_socket):
+#     if client_socket in active_calls:
+#         target_socket = active_calls[client_socket]
+#         target_socket.send(f"{clients[client_socket]} 结束了通话.".encode('utf-8'))
+        
+#         # Remove the call from both sides
+#         del active_calls[client_socket]
+#         del active_calls[target_socket]
+        
+#         client_socket.send("通话已结束.".encode('utf-8'))
+#     else:
+#         client_socket.send("你当前没有在通话中.".encode('utf-8'))
+
 # def start_server():
 #     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 #     server.bind(('0.0.0.0', 12345))
@@ -106,8 +124,6 @@
 
 # if __name__ == "__main__":
 #     start_server()
-
-
 
 
 
@@ -152,7 +168,7 @@ def handle_client(client_socket):
                 join_group(client_socket, username, group_name)
             elif msg.startswith('/sendfile'):
                 _, filename = msg.split()
-                receive_file(client_socket, filename)
+                request_file_transfer(client_socket, filename)
             elif client_socket in active_calls:  # Check if the client is in an active call
                 # Handle direct chat during a call
                 target_socket = active_calls[client_socket]
@@ -207,6 +223,35 @@ def receive_file(client_socket, filename):
             bytes_received += len(bytes_data)
 
     broadcast(f"文件 {filename} 已发送给群组或用户", client_socket)
+
+def request_file_transfer(sender_socket, filename):
+    target_username = sender_socket.recv(1024).decode('utf-8')
+    if target_username in usernames:
+        target_socket = usernames[target_username]
+        target_socket.send(f"{clients[sender_socket]} 想要发送文件: {filename}. 你想下载吗？请输入 /download 或 /reject".encode('utf-8'))
+
+        # 等待接收用户的响应
+        response = target_socket.recv(1024).decode('utf-8')
+        if response == '/download':
+            send_file(sender_socket, target_socket, filename)
+        elif response == '/reject':
+            target_socket.send("文件传输被拒绝.".encode('utf-8'))
+    else:
+        sender_socket.send("用户不在线.".encode('utf-8'))
+
+def send_file(sender_socket, target_socket, filename):
+    if os.path.isfile(filename):
+        target_socket.send(f"开始接收文件 {filename}, 大小: {os.path.getsize(filename)} bytes".encode('utf-8'))
+        target_socket.send(str(os.path.getsize(filename)).encode('utf-8'))
+
+        with open(filename, 'rb') as f:
+            bytes_read = f.read(1024)
+            while bytes_read:
+                target_socket.send(bytes_read)
+                bytes_read = f.read(1024)
+        sender_socket.send("文件发送完成.".encode('utf-8'))
+    else:
+        sender_socket.send("文件不存在。".encode('utf-8'))
 
 def handle_end_call(client_socket):
     if client_socket in active_calls:
