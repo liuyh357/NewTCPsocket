@@ -6,6 +6,7 @@ clients = {}
 usernames = {}
 groups = {}
 call_requests = {}
+active_calls = {}
 
 def handle_client(client_socket):
     client_socket.send("请输入你的用户名:".encode('utf-8'))
@@ -25,6 +26,8 @@ def handle_client(client_socket):
                 if client_socket in call_requests:
                     target_socket = call_requests[client_socket]
                     if target_socket:
+                        active_calls[client_socket] = target_socket
+                        active_calls[target_socket] = client_socket
                         target_socket.send(f"{clients[client_socket]} 接受了通话请求.".encode('utf-8'))
                         del call_requests[client_socket]
                 else:
@@ -35,6 +38,10 @@ def handle_client(client_socket):
             elif msg.startswith('/sendfile'):
                 _, filename = msg.split()
                 receive_file(client_socket, filename)
+            elif client_socket in active_calls:  # Check if the client is in an active call
+                # Handle direct chat during a call
+                target_socket = active_calls[client_socket]
+                target_socket.send(f"{username} (通话): {msg}".encode('utf-8'))
             else:
                 broadcast(f"{username}: {msg}", client_socket)
         except Exception as e:
