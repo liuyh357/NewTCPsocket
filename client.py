@@ -42,6 +42,8 @@ def start_client():
         elif msg.startswith('/sendfile'):
             _, filename = msg.split()
             send_file(client, filename)
+        elif msg.startswith('/accept'):  # Handle the accept command
+            client.send(msg.encode('utf-8'))
         else:
             client.send(msg.encode('utf-8'))
 

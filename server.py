@@ -5,6 +5,7 @@ import os
 clients = {}
 usernames = {}
 groups = {}
+call_requests = {}
 
 def handle_client(client_socket):
     client_socket.send("请输入你的用户名:".encode('utf-8'))
@@ -20,6 +21,14 @@ def handle_client(client_socket):
             if msg.startswith('/call'):
                 _, target_username = msg.split()
                 threading.Thread(target=call_user, args=(client_socket, target_username)).start()
+            elif msg.startswith('/accept'):
+                if client_socket in call_requests:
+                    target_socket = call_requests[client_socket]
+                    if target_socket:
+                        target_socket.send(f"{clients[client_socket]} 接受了通话请求.".encode('utf-8'))
+                        del call_requests[client_socket]
+                else:
+                    client_socket.send("没有通话请求.".encode('utf-8'))
             elif msg.startswith('/group'):
                 _, group_name = msg.split()
                 join_group(client_socket, username, group_name)
@@ -52,6 +61,7 @@ def call_user(caller_socket, target_username):
     if target_username in usernames:
         target_socket = usernames[target_username]
         target_socket.send(f"{clients[caller_socket]} 想要与你通话，接受请回复 /accept".encode('utf-8'))
+        call_requests[target_socket] = caller_socket  # Store the call request
     else:
         caller_socket.send("用户不在线.".encode('utf-8'))
 
