@@ -7,7 +7,6 @@ usernames = {}
 groups = {}
 
 def handle_client(client_socket):
-    # 用户登录
     client_socket.send("请输入你的用户名:".encode('utf-8'))
     username = client_socket.recv(1024).decode('utf-8')
     clients[client_socket] = username
@@ -18,10 +17,9 @@ def handle_client(client_socket):
     while True:
         try:
             msg = client_socket.recv(1024).decode('utf-8')
-
             if msg.startswith('/call'):
                 _, target_username = msg.split()
-                call_user(client_socket, target_username)
+                threading.Thread(target=call_user, args=(client_socket, target_username)).start()
             elif msg.startswith('/group'):
                 _, group_name = msg.split()
                 join_group(client_socket, username, group_name)
@@ -62,7 +60,6 @@ def join_group(client_socket, username, group_name):
         groups[group_name] = []
     groups[group_name].append(client_socket)
     client_socket.send(f"已加入群组 {group_name}".encode('utf-8'))
-    
     for member in groups[group_name]:
         member.send(f"{username} 已加入群组 {group_name}".encode('utf-8'))
 
@@ -76,7 +73,7 @@ def receive_file(client_socket, filename):
             bytes_data = client_socket.recv(1024)
             f.write(bytes_data)
             bytes_received += len(bytes_data)
-    
+
     broadcast(f"文件 {filename} 已发送给群组或用户", client_socket)
 
 def start_server():

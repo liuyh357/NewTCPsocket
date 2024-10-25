@@ -14,7 +14,7 @@ def send_file(sock, filename):
     if os.path.isfile(filename):
         sock.send(f"/sendfile {filename}".encode('utf-8'))
         sock.send(str(os.path.getsize(filename)).encode('utf-8'))
-        
+
         with open(filename, 'rb') as f:
             bytes_read = f.read(1024)
             while bytes_read:
