@@ -133,9 +133,70 @@ groups = {}
 call_requests = {}
 active_calls = {}
 
+
+
+
+# def handle_client(client_socket):
+#     client_socket.send("请输入你的用户名:".encode('utf-8'))
+#     username = client_socket.recv(1024).decode('utf-8')
+#     clients[client_socket] = username
+#     usernames[username] = client_socket
+#     broadcast(f"{username} 已上线", None)
+#     send_user_list()
+
+#     while True:
+#         try:
+#             msg = client_socket.recv(1024).decode('utf-8')
+#             if msg.startswith('/call'):
+#                 _, target_username = msg.split()
+#                 threading.Thread(target=call_user, args=(client_socket, target_username)).start()
+#             elif msg.startswith('/accept'):
+#                 if client_socket in call_requests:
+#                     target_socket = call_requests[client_socket]
+#                     if target_socket:
+#                         active_calls[client_socket] = target_socket
+#                         active_calls[target_socket] = client_socket
+#                         target_socket.send(f"{clients[client_socket]} 接受了通话请求.".encode('utf-8'))
+#                         del call_requests[client_socket]
+#                 else:
+#                     client_socket.send("没有通话请求.".encode('utf-8'))
+#             elif msg.startswith('/endcall'):
+#                 handle_end_call(client_socket)
+#             elif msg.startswith('/group'):
+#                 _, group_name = msg.split()
+#                 join_group(client_socket, username, group_name)
+#             elif msg.startswith('/sendfile'):
+#                 _, filename = msg.split()
+#                 receive_file(client_socket, filename)
+#                 request_file_transfer(client_socket, filename)
+#             elif client_socket in active_calls:  # Check if the client is in an active call
+#                 # Handle direct chat during a call
+#                 target_socket = active_calls[client_socket]
+#                 target_socket.send(f"{username} (通话): {msg}".encode('utf-8'))
+#             else:
+#                 broadcast(f"{username}: {msg}", client_socket)
+#         except Exception as e:
+#             print(e)
+#             break
+
+#     client_socket.close()
+#     del clients[client_socket]
+#     del usernames[username]
+#     broadcast(f"{username} 已下线", None)
+#     send_user_list()
+
+
 def handle_client(client_socket):
-    client_socket.send("请输入你的用户名:".encode('utf-8'))
-    username = client_socket.recv(1024).decode('utf-8')
+    while True:
+        client_socket.send("请输入你的用户名:".encode('utf-8'))
+        username = client_socket.recv(1024).decode('utf-8')
+        
+        # 检查用户名是否已经存在
+        if username in usernames:
+            client_socket.send("用户名已存在，请选择一个不同的用户名!".encode('utf-8'))
+        else:
+            break  # 用户名可用，退出循环
+
     clients[client_socket] = username
     usernames[username] = client_socket
     broadcast(f"{username} 已上线", None)
@@ -181,6 +242,7 @@ def handle_client(client_socket):
     del usernames[username]
     broadcast(f"{username} 已下线", None)
     send_user_list()
+
 
 def send_user_list():
     user_list = "当前在线用户: " + ', '.join(usernames.keys())
